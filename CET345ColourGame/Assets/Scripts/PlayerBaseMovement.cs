@@ -1,45 +1,65 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerBaseMovement : MonoBehaviour
 {
-    public Rigidbody Prb;
-    public float Movespeed = 10f;
+    Rigidbody PRB;
 
-    private float xInput;
-    private float zInput;
+    [SerializeField] InputAction Movement;
+    Vector2 MovementInput;
+    [SerializeField] float MovementSpeed;
 
+    [SerializeField] float TopHorizontalMovementSpeed;
+    [SerializeField] float TopVerticalMovementSpeed;
 
-    private void Awake()
+    //Enabling action function
+    private void OnEnable()
     {
-        //Getting player's Rigidbody using on awake function as this gets called as the game is loading
-        Prb = GetComponent<Rigidbody>();
+        Movement.Enable();
     }
 
+    //Disabling action function
+    private void OnDisable()
+    {
+        Movement.Disable();
+    }
+
+    //On start checking if TopVerticalMovementSpeed is greater than 0
+    private void Start()
+    {
+        if (TopVerticalMovementSpeed > 0)
+        {
+            //Prevents player from exceeding top speed 
+            TopVerticalMovementSpeed *= -1;
+        }
+
+        //Initialisng Player's Rigidbody
+        PRB = GetComponent<Rigidbody>();
+    }
+
+    //Using Update to read in the Movement input allowing Player to move with WASD keys
     private void Update()
     {
-        //Calling PlayerInputs
-        PlayerInputs();
+        MovementInput = Movement.ReadValue<Vector2>();
     }
 
-    //Using FixedUpdate as this function is better when handling physics based movement
+    //Using FixedUpdate with physics
     private void FixedUpdate()
     {
-        //Calling Movement
-        Movement();
+        //Clamping Player's speed so Player can't exceed their TopVerticalMovementSpeed or their TopHorizontalMovementSpeed
+        PRB.AddForce(new Vector3(MovementInput.x, 0, MovementInput.y) * MovementSpeed);
+
+        if (PRB.velocity.y < TopVerticalMovementSpeed)
+        {
+            PRB.velocity = new Vector3(PRB.velocity.x, TopVerticalMovementSpeed, PRB.velocity.z);
+        }
+
+        Vector2 tempXZ = new Vector2(PRB.velocity.x, PRB.velocity.z);
+        if (tempXZ.magnitude > TopHorizontalMovementSpeed)
+        {
+            tempXZ = tempXZ.normalized * TopHorizontalMovementSpeed;
+            PRB.velocity = new Vector3(tempXZ.x, PRB.velocity.y, tempXZ.y);
+        }
     }
 
-    private void PlayerInputs()
-    {
-        //Using Unity's built in axis so player can move around using the arrow keys or WASD depending on preference
-        xInput = Input.GetAxis("Horizontal");
-        zInput = Input.GetAxis("Vertical");
-    }
-
-    private void Movement()
-    {
-        //Using add force for player's movement and multiplying this by player's movespeed
-        Prb.AddForce(new Vector3(xInput, 0f, zInput) * Movespeed);
-    }
 }
